@@ -9,22 +9,26 @@ var clock = new THREE.Clock();
 var gridX = false;
 var gridY = false;
 var gridZ = false;
-var axes = false;
+var axes = true;
 var ground = false;
 
 
 
 
 function createCloth() {
-    //Create a closed wavey loop
     var curve, points, geometry, curveObject;
 
-
-    for (var j = 0; j < 10; j++) {
+    // POUR AUGMENTER LA TAILLE DU TISSU, CHANGER LE 30 DANS TOUTES LES BOUCLES
+    var reverse = false;
+    for (var j = Math.PI/2; j < 30; j+=2*Math.PI/2) {
         var arrayPoints = [];
 
-        for (var i = 0; i < 30; i++) {
-            arrayPoints.push(new THREE.Vector3(i, Math.sin(i), j));
+        for (var i = 0; i < 32; i++) {
+            if (reverse) {
+                arrayPoints.push(new THREE.Vector3(i, -0.5*Math.sin(i), j));
+            } else {
+                arrayPoints.push(new THREE.Vector3(i, 0.5*Math.sin(i), j));
+            }
         }
 
         curve = new THREE.CatmullRomCurve3(arrayPoints);
@@ -32,16 +36,38 @@ function createCloth() {
         points = curve.getPoints(50);
         geometry = new THREE.BufferGeometry().setFromPoints(points);
 
-        const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
+        const material = new THREE.LineBasicMaterial({ color: 0x111111 });
 
-        // Create the final object to add to the scene
         curveObject = new THREE.Line(geometry, material);
 
         scene.add(curveObject);
-
+        reverse = !reverse;
     }
 
+    reverse = true;
+    for (var j = Math.PI/2; j < 30; j+=2*Math.PI/2) {
+        var arrayPoints = [];
 
+        for (var i = 0; i < 32; i++) {
+            if (reverse) {
+                arrayPoints.push(new THREE.Vector3(j, -0.5*Math.sin(i), i));
+            } else {
+                arrayPoints.push(new THREE.Vector3(j, 0.5*Math.sin(i), i));
+            }
+        }
+
+        curve = new THREE.CatmullRomCurve3(arrayPoints);
+
+        points = curve.getPoints(50);
+        geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+        const material = new THREE.LineBasicMaterial({ color: 0x111111 });
+
+        curveObject = new THREE.Line(geometry, material);
+
+        scene.add(curveObject);
+        reverse = !reverse;
+    }
 }
 
 function init() {
@@ -58,12 +84,12 @@ function init() {
     renderer.setClearColor(0xAAAAAA, 1.0);
 
     // CAMERA
-    camera = new THREE.PerspectiveCamera(45, canvasRatio, 1, 40000);
-    camera.position.set(-150, 50, 0);
-    camera.lookAt(new THREE.Vector3(300, 300, 0));
+    camera = new THREE.PerspectiveCamera(45, canvasRatio, 1, 1000);
 
     // CONTROLS
     cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
+    cameraControls.object.position.set(15, 50, 15);
+    cameraControls.target = new THREE.Vector3(15, 0, 15);
 
 
 
@@ -133,7 +159,6 @@ function render() {
         fillScene();
     }
     renderer.render(scene, camera);
-
 }
 
 function setupGui() {
@@ -154,7 +179,6 @@ function setupGui() {
     gui.add(effectController, "newGround").name("Show ground");
     gui.add(effectController, "newAxes").name("Show axes");
 }
-
 
 
 try {
