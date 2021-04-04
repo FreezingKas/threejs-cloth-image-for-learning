@@ -9,50 +9,89 @@ var clock = new THREE.Clock();
 var gridX = false;
 var gridY = false;
 var gridZ = false;
-var axes = true;
+var axes = false;
 var ground = false;
 
+// Créer le premeir tissu avec la taille par défaut
+function createFirstMaterial() {
+    createMaterial(150);
+}
+
+// je suis obligé de refaire une fonction sinon marche pas
+// je peux pas mettre directement effectController dans createMAterial sinon le premier se crée pas
+function createNewMaterial() {
+    // Je dois remove l'ancien objet et le récreer 
+    while (scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+    }
+
+    createMaterial(effectController.size);
+}
+
+// fonction pour créer un défaut c'est le seul truc que j'ai trouvé pour faire un défaut
+function defaut() {
+    var randomValue = Math.random();
+    var defaut = 0;
+
+    if (randomValue > 0.99) {
+        defaut = 2 * Math.PI / 2;
+    } else if (randomValue < 0.001) {
+        defaut = -(2 * Math.PI / 2);
+    }
+
+    return defaut;
+}
 
 
-
-function createCloth() {
+function createMaterial(size) {
     var curve, points, geometry, curveObject;
 
-    // POUR AUGMENTER LA TAILLE DU TISSU, CHANGER LE 30 DANS TOUTES LES BOUCLES
+    // Première boulces imbirqués parallèles à l'axe X
+    // Nous alternons le sens des courbes pour faire comme du tissu
     var reverse = false;
-    for (var j = Math.PI/2; j < 30; j+=2*Math.PI/2) {
+    for (var j = Math.PI / 2; j < size; j += Math.PI) {
         var arrayPoints = [];
 
-        for (var i = 0; i < 32; i++) {
+
+
+        // Nous créeons un tableau de points de notre courbe
+        for (var i = 0; i < size + 2; i++) {
             if (reverse) {
-                arrayPoints.push(new THREE.Vector3(i, -0.5*Math.sin(i), j));
+                arrayPoints.push(new THREE.Vector3(i, -0.5 * Math.sin(i), j/*+defaut()*/));
             } else {
-                arrayPoints.push(new THREE.Vector3(i, 0.5*Math.sin(i), j));
+                arrayPoints.push(new THREE.Vector3(i, 0.5 * Math.sin(i), j/*+defaut()*/));
             }
         }
 
+        // Création de l'objet courbe
         curve = new THREE.CatmullRomCurve3(arrayPoints);
 
-        points = curve.getPoints(50);
+        // On crée la courbe à partir du points
+        // je met 1000 pour la situation ou la taille est grande pour que les courbes soit des courbes pas des segments
+        points = curve.getPoints(1000);
         geometry = new THREE.BufferGeometry().setFromPoints(points);
 
+        // Le materiél métallique
         const material = new THREE.LineBasicMaterial({ color: 0x111111 });
 
+        // On crée l'objet 3D de la courbe
         curveObject = new THREE.Line(geometry, material);
 
         scene.add(curveObject);
+        // on reverse pour que la prochaine courbe soit tracé de manière inverse
         reverse = !reverse;
     }
 
+    // Même chose qu'au dessus
     reverse = true;
-    for (var j = Math.PI/2; j < 30; j+=2*Math.PI/2) {
+    for (var j = Math.PI / 2; j < size; j += Math.PI) {
         var arrayPoints = [];
 
-        for (var i = 0; i < 32; i++) {
+        for (var i = 0; i < size + 2; i++) {
             if (reverse) {
-                arrayPoints.push(new THREE.Vector3(j, -0.5*Math.sin(i), i));
+                arrayPoints.push(new THREE.Vector3(j, -0.5 * Math.sin(i), i));
             } else {
-                arrayPoints.push(new THREE.Vector3(j, 0.5*Math.sin(i), i));
+                arrayPoints.push(new THREE.Vector3(j, 0.5 * Math.sin(i), i));
             }
         }
 
@@ -69,6 +108,10 @@ function createCloth() {
         reverse = !reverse;
     }
 }
+
+
+
+
 
 function init() {
     var canvasWidth = 846;
@@ -88,10 +131,8 @@ function init() {
 
     // CONTROLS
     cameraControls = new THREE.OrbitControls(camera, renderer.domElement);
-    cameraControls.object.position.set(15, 50, 15);
-    cameraControls.target = new THREE.Vector3(15, 0, 15);
-
-
+    cameraControls.object.position.set(75, 125, 75);
+    cameraControls.target = new THREE.Vector3(75, 0, 75);
 
 
     fillScene();
@@ -137,7 +178,9 @@ function fillScene() {
     if (axes) {
         Coordinates.drawAllAxes({ axisLength: 300, axisRadius: 2, axisTess: 50 });
     }
-    createCloth();
+
+    //
+    createFirstMaterial();
 }
 
 
@@ -159,6 +202,12 @@ function render() {
         fillScene();
     }
     renderer.render(scene, camera);
+
+    // Virer ca si vous voulez bouger la camera à la souris
+    if (!effectController.free) {
+        cameraControls.object.position.set(75, effectController.height, 75);
+    }
+
 }
 
 function setupGui() {
@@ -169,7 +218,11 @@ function setupGui() {
         newGridY: gridY,
         newGridZ: gridZ,
         newGround: ground,
-        newAxes: axes
+        newAxes: axes,
+        size: 150,
+        change: createNewMaterial,
+        height: 125,
+        free: false
     };
 
     var gui = new dat.GUI();
@@ -178,7 +231,20 @@ function setupGui() {
     gui.add(effectController, "newGridZ").name("Show XY grid");
     gui.add(effectController, "newGround").name("Show ground");
     gui.add(effectController, "newAxes").name("Show axes");
+
+    // dimensions du tissu
+    gui.add(effectController, "size", 150, 300, 1).name("Size");
+
+    // Bouton pour appliquer les changements
+    gui.add(effectController, "change").name("Change");
+
+    // hauteur caméra
+    gui.add(effectController, "height", 125, 300).name("Height Camera");
+
+    // Camera libre ou pas
+    gui.add(effectController, "free").name("Camera Libre");
 }
+
 
 
 try {
